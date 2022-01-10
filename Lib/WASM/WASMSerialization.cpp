@@ -476,6 +476,7 @@ enum class SectionID : U8
 	data = 11,
 	dataCount = 12,
 	exceptionType = 0x7f,
+	tagType = 13
 };
 
 static void serialize(InputStream& stream, SectionID& sectionID)
@@ -788,9 +789,11 @@ template<typename Stream>
 void serialize(Stream& stream,
 			   ExceptionTypeImm& imm,
 			   const FunctionDef&,
-			   const ModuleSerializationState&)
+			   const ModuleSerializationState& moduleState)
 {
 	serializeVarUInt32(stream, imm.exceptionTypeIndex);
+	//map the index from the tagtypes to the exceptionTypes section
+	imm.exceptionTypeIndex = moduleState.module.tagTypes.at(imm.exceptionTypeIndex).exceptionTypeIndex;
 }
 
 template<typename Stream>
@@ -1348,6 +1351,30 @@ template<typename Stream> void serializeGlobalSection(Stream& moduleStream, Modu
 	});
 }
 
+template<typename Stream> void serializeTagTypeSection(Stream& moduleStream, Module& module)
+{
+	serializeSection(moduleStream, SectionID::tagType, [&module](Stream& sectionStream) {
+		module.exceptionTypes.defs.clear();
+		serializeArray(sectionStream, module.tagTypes, [&module](Stream& tagStream, Tag& tag) {
+			U8 attribute = 0;
+			serializeNativeValue(tagStream, attribute);
+			Uptr typeIndex = 0;
+			serializeVarUInt32(tagStream, typeIndex);
+			switch(attribute)
+			{
+				case 0: //exception type
+					ExceptionTypeDef exceptionTypeDef;
+					ExceptionType exceptionType;
+					exceptionType.params = module.types[typeIndex].params();
+					exceptionTypeDef.type = exceptionType;
+					module.exceptionTypes.defs.push_back(exceptionTypeDef);
+					tag.exceptionTypeIndex = (U32)(module.exceptionTypes.defs.size()) - 1;
+			}
+		});
+		module.exceptionTypes.defs.shrink_to_fit();
+	});
+}
+
 template<typename Stream> void serializeExceptionTypeSection(Stream& moduleStream, Module& module)
 {
 	serializeSection(moduleStream, SectionID::exceptionType, [&module](Stream& sectionStream) {
@@ -1540,10 +1567,12 @@ static void serializeModule(InputStream& moduleStream, Module& module)
 			case SectionID::code: orderedSectionID = OrderedSectionID::code; break;
 			case SectionID::data: orderedSectionID = OrderedSectionID::data; break;
 			case SectionID::dataCount: orderedSectionID = OrderedSectionID::dataCount; break;
+			case SectionID::tagType:
+				orderedSectionID = OrderedSectionID::tag;
+				break;
 			case SectionID::exceptionType:
 				orderedSectionID = OrderedSectionID::exceptionType;
 				break;
-
 			case SectionID::custom: WAVM_UNREACHABLE();
 			default:
 				throw FatalSerializationException("unknown section ID ("
@@ -1579,6 +1608,10 @@ static void serializeModule(InputStream& moduleStream, Module& module)
 		case SectionID::memory:
 			serializeMemorySection(moduleStream, module);
 			IR::validateMemoryDefs(*moduleState.validationState);
+			break;
+		case SectionID::tagType:
+			serializeTagTypeSection(moduleStream, module);
+			//IR::validateTagTypeDefs(*moduleState.validationState);
 			break;
 		case SectionID::global:
 			serializeGlobalSection(moduleStream, module);

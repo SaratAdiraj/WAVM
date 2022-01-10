@@ -567,6 +567,28 @@ namespace WAVM { namespace IR {
 		}
 	}
 
+	struct Tag {
+		U8 attribute;
+		Uptr typeSignatureIndex;
+		U32 exceptionTypeIndex;
+
+		friend bool operator==(const Tag& left, const Tag& right)
+		{
+			return left.typeSignatureIndex == right.typeSignatureIndex
+					&&  left.attribute == right.attribute;
+		}
+		friend bool operator!=(const Tag& left, const Tag& right)
+		{
+			return left.typeSignatureIndex != right.typeSignatureIndex
+					|| left.attribute !=  right.attribute;
+		}
+	};
+
+	struct TagType {
+		U32 count;
+		std::vector<Tag> tags;
+	};
+	
 	struct ExceptionType
 	{
 		TypeTuple params;

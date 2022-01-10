@@ -113,6 +113,11 @@ namespace WAVM { namespace IR {
 		MemoryType type;
 	};
 
+	struct TagDef
+	{
+		TagType type;
+	};
+
 	// A global definition
 	struct GlobalDef
 	{
@@ -137,6 +142,7 @@ namespace WAVM { namespace IR {
 	typedef Import<IndexedFunctionType> FunctionImport;
 	typedef Import<TableType> TableImport;
 	typedef Import<MemoryType> MemoryImport;
+	typedef Import<TagType> TagImport;
 	typedef Import<GlobalType> GlobalImport;
 	typedef Import<ExceptionType> ExceptionTypeImport;
 
@@ -277,6 +283,7 @@ namespace WAVM { namespace IR {
 		function,
 		table,
 		memory,
+		tag,
 		global,
 		exceptionType,
 		export_,
@@ -347,6 +354,7 @@ namespace WAVM { namespace IR {
 		IndexSpace<FunctionDef, IndexedFunctionType> functions;
 		IndexSpace<TableDef, TableType> tables;
 		IndexSpace<MemoryDef, MemoryType> memories;
+		std::vector<Tag> tagTypes;
 		IndexSpace<GlobalDef, GlobalType> globals;
 		IndexSpace<ExceptionTypeDef, ExceptionType> exceptionTypes;
 

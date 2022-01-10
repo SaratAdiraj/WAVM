@@ -693,12 +693,22 @@ struct State
 		}
 		else if(abi == ABI::wasi || abi == ABI::emscripten)
 		{
-			// WASI/Emscripten just calls a _start function with the signature ()->().
+			// WASI/Emscripten just calls a _start with the signature ()->().
 			function = getTypedInstanceExport(instance, "_start", FunctionType());
 			if(!function)
-			{
-				Log::printf(Log::error, "WASM module doesn't export WASI _start function.\n");
-				return EXIT_FAILURE;
+			{ //check if a function called main exists
+				function = getTypedInstanceExport(instance, "main", FunctionType());
+				if(!function)
+				{
+					Log::printf(Log::error, "WASM module doesn't export WASI _start or a main function.\n");
+					return EXIT_FAILURE;
+				}
+				else
+				{
+					//main needs to be invoked with the signature (i32, i32)->i32.
+					invokeArgs.push_back(0);
+					invokeArgs.push_back(0);
+				}
 			}
 		}
 		WAVM_ASSERT(function);

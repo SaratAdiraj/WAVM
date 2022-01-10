@@ -50,7 +50,7 @@ void Runtime::invokeFunction(Context* context,
 						|| isInCompartment(arg.object, context->compartment));
 		}
 	}
-
+	
 	// Get the invoke thunk for this function type. Cache it in the function's FunctionMutableData
 	// to avoid the global lock implied by LLVMJIT::getInvokeThunk.
 	InvokeThunkPointer invokeThunk

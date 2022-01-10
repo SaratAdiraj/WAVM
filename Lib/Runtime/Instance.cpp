@@ -575,7 +575,6 @@ Function* Runtime::getTypedInstanceExport(const Instance* instance,
 	WAVM_ASSERT(instance);
 	Object* const* exportedObjectPtr = instance->exportMap.get(name);
 	return exportedObjectPtr && (*exportedObjectPtr)->kind == ObjectKind::function
-				   && FunctionType(asFunction(*exportedObjectPtr)->encodedType) == type
 			   ? asFunction(*exportedObjectPtr)
 			   : nullptr;
 }
