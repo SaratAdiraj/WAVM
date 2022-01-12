@@ -1,0 +1,23 @@
+wavm.cpp --> wavm_run.cpp |--> WASMSerialization.cpp 
+			  |--> Module.cpp ---> |--> EmitModule.cpp   -------> | EmitFunction (emit())
+                          |                    |---> LLVMCompile.cpp
+                          |--> Invoke.cpp
+cd WAVM\build_dir
+
+cmake ..\ -G "Visual Studio 16 2019" -DLLVM_DIR=F:\WebAssembly\llvm-project-llvmorg-12.0.0\build\lib\cmake\llvm
+cmake -DLLVM_ENABLE_PROJECTS=clang -G "Visual Studio 16 2019" -A x64 -Thost=x64 ..\llvm
+
+
+cmake --build .  
+
+em++ -s NO_DISABLE_EXCEPTION_CATCHING hello.cpp -o hello.wasm
+
+em++ -fwasm-exceptions hello.cpp -o hello.wasm -flto
+
+em++ -fwasm-exceptions hello.cpp
+
+wavm run --enable exception-handling a.out.wasm
+
+cl a.o /link /SUBSYSTEM:CONSOLE
+
+wasm-ld.exe -o hello.wasm a.o -LC:\Users\TooLi\emsdk\upstream\emscripten\cache\sysroot\lib\wasm32-emscripten C:\Users\TooLi\emsdk\upstream\emscripten\cache\sysroot\lib\wasm32-emscripten\crt1.o -lGL -lal -lhtml5 -lstubs-debug -lc -lcompiler_rt -lc++-except -lunwind-except -ldlmalloc -lstandalonewasm -lc_rt -lsockets -mllvm -combiner-global-alias-analysis=false -mllvm -enable-emscripten-sjlj -mllvm -disable-lsr -mllvm -wasm-enable-eh -mllvm -exception-model=wasm --import-undefined --strip-debug --export-if-defined=emscripten_stack_get_end --export-if-defined=emscripten_stack_get_free --export-if-defined=emscripten_stack_init --export-if-defined=stackSave --export-if-defined=stackRestore --export-if-defined=stackAlloc --export-if-defined=__errno_location --export-if-defined=malloc --export-if-defined=setThrew --export-if-defined=free --export-if-defined=__start_em_asm --export-if-defined=__stop_em_asm --export-table -z stack-size=5242880 --initial-memory=16777216 --max-memory=16777216 --global-base=1024
