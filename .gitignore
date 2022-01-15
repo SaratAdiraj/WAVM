@@ -1,0 +1,3 @@
+# ignoring directories
+build/
+.vscode/

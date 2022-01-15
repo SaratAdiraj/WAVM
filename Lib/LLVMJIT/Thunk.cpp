@@ -134,14 +134,14 @@ InvokeThunkPointer LLVMJIT::getInvokeThunk(FunctionType functionType)
 		const ValueType paramType = functionType.params()[argIndex];
 		llvm::Value* argOffset = emitLiteral(llvmContext, argIndex * sizeof(UntaggedValue));
 		llvm::Value* arg = emitContext.loadFromUntypedPointer(
-			emitContext.irBuilder.CreateInBoundsGEP(argsArray, {argOffset}),
+			emitContext.irBuilder.CreateInBoundsGEP(argsArray->getType()->getScalarType()->getPointerElementType(), argsArray, {argOffset}),
 			asLLVMType(llvmContext, paramType),
 			alignof(UntaggedValue));
 		arguments.push_back(arg);
 	}
 
 	// Call the function.
-	llvm::Value* functionCode = emitContext.irBuilder.CreateInBoundsGEP(
+	llvm::Value* functionCode = emitContext.irBuilder.CreateInBoundsGEP(calleeFunction->getType()->getScalarType()->getPointerElementType(),
 		calleeFunction, {emitLiteralIptr(offsetof(Runtime::Function, code), iptrType)});
 	ValueVector results = emitContext.emitCallOrInvoke(
 		emitContext.irBuilder.CreatePointerCast(
@@ -157,13 +157,12 @@ InvokeThunkPointer LLVMJIT::getInvokeThunk(FunctionType functionType)
 		llvm::Value* result = results[resultIndex];
 		emitContext.storeToUntypedPointer(
 			result,
-			emitContext.irBuilder.CreateInBoundsGEP(resultsArray, {resultOffset}),
+			emitContext.irBuilder.CreateInBoundsGEP(resultsArray->getType()->getScalarType()->getPointerElementType(), resultsArray, {resultOffset}),
 			alignof(UntaggedValue));
 	}
-
 	// Return the new context pointer.
 	emitContext.irBuilder.CreateRet(
-		emitContext.irBuilder.CreateLoad(emitContext.contextPointerVariable));
+		emitContext.irBuilder.CreateLoad(emitContext.contextPointerVariable->getType()->getPointerElementType(), emitContext.contextPointerVariable));
 
 	// Compile the LLVM IR to object code.
 	std::vector<U8> objectBytes

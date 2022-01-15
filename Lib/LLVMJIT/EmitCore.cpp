@@ -372,16 +372,16 @@ void EmitFunctionContext::call_indirect(CallIndirectImm imm)
 
 	// Load base and endIndex from the TableRuntimeData in CompartmentRuntimeData::tables
 	// corresponding to imm.tableIndex.
-	auto tableRuntimeDataPointer = irBuilder.CreateInBoundsGEP(
+	auto tableRuntimeDataPointer = irBuilder.CreateInBoundsGEP(getCompartmentAddress()->getType()->getScalarType()->getPointerElementType(),
 		getCompartmentAddress(), {moduleContext.tableOffsets[imm.tableIndex]});
 	auto tableBasePointer = loadFromUntypedPointer(
-		irBuilder.CreateInBoundsGEP(
+		irBuilder.CreateInBoundsGEP(tableRuntimeDataPointer->getType()->getScalarType()->getPointerElementType(),
 			tableRuntimeDataPointer,
 			{emitLiteralIptr(offsetof(TableRuntimeData, base), moduleContext.iptrType)}),
 		moduleContext.iptrType->getPointerTo(),
 		moduleContext.iptrAlignment);
 	auto tableMaxIndex = loadFromUntypedPointer(
-		irBuilder.CreateInBoundsGEP(
+		irBuilder.CreateInBoundsGEP(tableRuntimeDataPointer->getType()->getScalarType()->getPointerElementType(),
 			tableRuntimeDataPointer,
 			{emitLiteralIptr(offsetof(TableRuntimeData, endIndex), moduleContext.iptrType)}),
 		moduleContext.iptrType,
@@ -393,15 +393,15 @@ void EmitFunctionContext::call_indirect(CallIndirectImm imm)
 		irBuilder.CreateICmpULT(elementIndex, tableMaxIndex), elementIndex, tableMaxIndex);
 
 	// Load the funcref referenced by the table.
-	auto elementPointer = irBuilder.CreateInBoundsGEP(tableBasePointer, {clampedElementIndex});
-	llvm::LoadInst* biasedValueLoad = irBuilder.CreateLoad(elementPointer);
+	auto elementPointer = irBuilder.CreateInBoundsGEP(tableBasePointer->getType()->getScalarType()->getPointerElementType(), tableBasePointer, {clampedElementIndex});
+	llvm::LoadInst* biasedValueLoad = irBuilder.CreateLoad(elementPointer->getType()->getPointerElementType(), elementPointer);
 	biasedValueLoad->setAtomic(llvm::AtomicOrdering::Acquire);
 	biasedValueLoad->setAlignment(LLVM_ALIGNMENT(sizeof(Uptr)));
 	auto runtimeFunction = irBuilder.CreateIntToPtr(
 		irBuilder.CreateAdd(biasedValueLoad, moduleContext.tableReferenceBias),
 		llvmContext.i8PtrType);
 	auto elementTypeId = loadFromUntypedPointer(
-		irBuilder.CreateInBoundsGEP(
+		irBuilder.CreateInBoundsGEP(runtimeFunction->getType()->getScalarType()->getPointerElementType(),
 			runtimeFunction,
 			emitLiteralIptr(offsetof(Runtime::Function, encodedType), moduleContext.iptrType)),
 		moduleContext.iptrType,
@@ -425,7 +425,7 @@ void EmitFunctionContext::call_indirect(CallIndirectImm imm)
 
 	// Call the function loaded from the table.
 	auto functionPointer = irBuilder.CreatePointerCast(
-		irBuilder.CreateInBoundsGEP(
+		irBuilder.CreateInBoundsGEP(runtimeFunction->getType()->getScalarType()->getPointerElementType(),
 			runtimeFunction,
 			emitLiteralIptr(offsetof(Runtime::Function, code), moduleContext.iptrType)),
 		asLLVMType(llvmContext, calleeType)->getPointerTo());
